@@ -87,10 +87,9 @@ class MovieSessionListSerializer(serializers.ModelSerializer):
             "tickets_available",
         )
 
-    tickets_available = serializers.SerializerMethodField()
-
     def get_tickets_available(self, obj):
-        return obj.cinema_hall.capacity - obj.tickets.count()
+        taken_tickets = Ticket.objects.filter(movie_session=obj).count()
+        return obj.cinema_hall.capacity - taken_tickets
 
 
 class TakenPlaceSerializer(serializers.ModelSerializer):
