@@ -98,7 +98,7 @@ class MovieSessionViewSet(viewsets.ModelViewSet):
             tickets_available=(
                 F("cinema_hall__rows")
                 * F("cinema_hall__seats_in_row")
-                - Count("tickets", distinct=True)
+                - Count("tickets__id")
             )
         )
         .order_by("id")
