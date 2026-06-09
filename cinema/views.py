@@ -94,13 +94,6 @@ class MovieSessionViewSet(viewsets.ModelViewSet):
             "cinema_hall"
         )
         .prefetch_related("tickets")
-        .annotate(
-            tickets_available=(
-                F("cinema_hall__rows")
-                * F("cinema_hall__seats_in_row")
-                - Count("tickets__id")
-            )
-        )
         .order_by("id")
     )
 
