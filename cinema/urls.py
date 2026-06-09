@@ -6,9 +6,11 @@ from cinema.views import (
     OrderViewSet,
 )
 
+app_name = "cinema"
+
 router = routers.DefaultRouter()
-router.register("movies", MovieViewSet)
-router.register("movie_sessions", MovieSessionViewSet)
-router.register("orders", OrderViewSet, basename="order")
+router.register(r"movies", MovieViewSet)
+router.register(r"movie_sessions", MovieSessionViewSet)
+router.register(r"orders", OrderViewSet, basename="orders")
 
 urlpatterns = router.urls
