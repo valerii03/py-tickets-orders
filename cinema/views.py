@@ -10,12 +10,14 @@ from cinema.models import (
     MovieSession,
     Order,
 )
+
 from cinema.serializers import (
     ActorSerializer,
     CinemaHallSerializer,
     GenreSerializer,
     MovieSerializer,
     MovieListSerializer,
+    MovieDetailSerializer,
     MovieSessionSerializer,
     MovieSessionListSerializer,
     MovieSessionDetailSerializer,
@@ -45,11 +47,17 @@ class CinemaHallViewSet(viewsets.ModelViewSet):
 
 
 class MovieViewSet(viewsets.ModelViewSet):
-    queryset = Movie.objects.prefetch_related("genres", "actors")
+    queryset = Movie.objects.prefetch_related(
+        "genres",
+        "actors"
+    )
 
     def get_serializer_class(self):
         if self.action == "list":
             return MovieListSerializer
+
+        if self.action == "retrieve":
+            return MovieDetailSerializer
 
         return MovieSerializer
 
@@ -61,13 +69,19 @@ class MovieViewSet(viewsets.ModelViewSet):
         title = self.request.query_params.get("title")
 
         if genres:
-            queryset = queryset.filter(genres__id__in=genres.split(","))
+            queryset = queryset.filter(
+                genres__id__in=genres.split(",")
+            )
 
         if actors:
-            queryset = queryset.filter(actors__id__in=actors.split(","))
+            queryset = queryset.filter(
+                actors__id__in=actors.split(",")
+            )
 
         if title:
-            queryset = queryset.filter(title__icontains=title)
+            queryset = queryset.filter(
+                title__icontains=title
+            )
 
         return queryset.distinct()
 
@@ -75,12 +89,16 @@ class MovieViewSet(viewsets.ModelViewSet):
 class MovieSessionViewSet(viewsets.ModelViewSet):
     queryset = (
         MovieSession.objects
-        .select_related("movie", "cinema_hall")
+        .select_related(
+            "movie",
+            "cinema_hall"
+        )
+        .prefetch_related("tickets")
         .annotate(
             tickets_available=(
                 F("cinema_hall__rows")
                 * F("cinema_hall__seats_in_row")
-                - Count("tickets")
+                - Count("tickets", distinct=True)
             )
         )
         .order_by("id")
@@ -102,10 +120,14 @@ class MovieSessionViewSet(viewsets.ModelViewSet):
         movie = self.request.query_params.get("movie")
 
         if date:
-            queryset = queryset.filter(show_time__date=date)
+            queryset = queryset.filter(
+                show_time__date=date
+            )
 
         if movie:
-            queryset = queryset.filter(movie_id=movie)
+            queryset = queryset.filter(
+                movie_id=movie
+            )
 
         return queryset
 
