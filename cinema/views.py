@@ -1,9 +1,22 @@
 from django.db.models import Count, F
 from rest_framework import viewsets
+from rest_framework.pagination import PageNumberPagination
 
-from cinema.models import Movie, MovieSession, Order
+from cinema.models import (
+    Actor,
+    CinemaHall,
+    Genre,
+    Movie,
+    MovieSession,
+    Order,
+)
 from cinema.serializers import (
+    ActorSerializer,
+    CinemaHallSerializer,
+    GenreSerializer,
+    MovieSerializer,
     MovieListSerializer,
+    MovieSessionSerializer,
     MovieSessionListSerializer,
     MovieSessionDetailSerializer,
     OrderSerializer,
@@ -11,9 +24,34 @@ from cinema.serializers import (
 )
 
 
+class OrderPagination(PageNumberPagination):
+    page_size = 10
+    max_page_size = 100
+
+
+class GenreViewSet(viewsets.ModelViewSet):
+    queryset = Genre.objects.all()
+    serializer_class = GenreSerializer
+
+
+class ActorViewSet(viewsets.ModelViewSet):
+    queryset = Actor.objects.all()
+    serializer_class = ActorSerializer
+
+
+class CinemaHallViewSet(viewsets.ModelViewSet):
+    queryset = CinemaHall.objects.all()
+    serializer_class = CinemaHallSerializer
+
+
 class MovieViewSet(viewsets.ModelViewSet):
     queryset = Movie.objects.prefetch_related("genres", "actors")
-    serializer_class = MovieListSerializer
+
+    def get_serializer_class(self):
+        if self.action == "list":
+            return MovieListSerializer
+
+        return MovieSerializer
 
     def get_queryset(self):
         queryset = self.queryset
@@ -38,7 +76,6 @@ class MovieSessionViewSet(viewsets.ModelViewSet):
     queryset = (
         MovieSession.objects
         .select_related("movie", "cinema_hall")
-        .prefetch_related("tickets")
         .annotate(
             tickets_available=(
                 F("cinema_hall__rows")
@@ -46,13 +83,17 @@ class MovieSessionViewSet(viewsets.ModelViewSet):
                 - Count("tickets")
             )
         )
+        .order_by("id")
     )
 
     def get_serializer_class(self):
+        if self.action == "list":
+            return MovieSessionListSerializer
+
         if self.action == "retrieve":
             return MovieSessionDetailSerializer
 
-        return MovieSessionListSerializer
+        return MovieSessionSerializer
 
     def get_queryset(self):
         queryset = self.queryset
@@ -70,6 +111,8 @@ class MovieSessionViewSet(viewsets.ModelViewSet):
 
 
 class OrderViewSet(viewsets.ModelViewSet):
+    pagination_class = OrderPagination
+
     def get_queryset(self):
         return (
             Order.objects
@@ -78,6 +121,7 @@ class OrderViewSet(viewsets.ModelViewSet):
                 "tickets__movie_session__movie",
                 "tickets__movie_session__cinema_hall",
             )
+            .order_by("id")
         )
 
     def get_serializer_class(self):
